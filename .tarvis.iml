@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.4"
+
+install:
+  - pip install coveralls
+
+before_script:
+  # set pythonpath
+  - export PYTHONPATH=$PYTHONPATH:./
+script:
+  # run tests
+  - coverage run --source=hyperhosts ./test/run_tests.py
+after_success:
+  coveralls
