@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 #
 # Copyleft (C) 2015 - huhamhire <me@huhamhire.com>
+import http.client
 import os
 import socket
 import ssl
+import time
 
 from abc import ABCMeta, abstractmethod
 
@@ -65,10 +67,33 @@ class ICMPEcho(EvalBase):
 
 
 class HttpDelay(EvalBase):
-    def eval(self):
-        pass
+    def __init__(self, ip, hostname, port=None, timeout=10, https=False):
+        self.ip = ip
+        self.timeout = timeout
+        if https:
+            self.port = port if port else 443
+            self.url = 'https://' + hostname
+            self.conn = http.client.HTTPSConnection
+        else:
+            self.port = port if port else 80
+            self.url = 'http://' + hostname
+            self.conn = http.client.HTTPConnection
 
+    def eval(self):
+        delay, start_time, stat = -1, time.time(), None
+        conn = self.conn(host=self.ip, port=self.port, timeout=self.timeout)
+        try:
+            conn.request(method="GET", url=self.url)
+            stat = conn.getresponse().status
+            delay = time.time() - start_time
+        except socket.timeout:
+            pass
+        except ConnectionResetError:
+            pass
+        finally:
+            conn.close()
+            return delay, stat
 
 if __name__ == "__main__":
-    cert = CertVerify("74.125.200.197", "www.gg.com.hk")
-    print(cert.eval())
+    test = HttpDelay("212.58.244.70", "www.bbc.com")
+    print(test.eval())
