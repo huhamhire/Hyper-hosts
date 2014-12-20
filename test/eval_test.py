@@ -4,7 +4,7 @@
 # Copyleft (C) 2015 - huhamhire <me@huhamhire.com>
 import unittest
 
-from hyperhosts.eval import CertVerify, ICMPEcho, HttpDelay
+from hyperhosts.evaluate import CertVerify, ICMPEcho, HttpDelay
 from test.constants import test_mark
 
 

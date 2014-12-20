@@ -5,5 +5,5 @@
 
 import os
 
-mod_path = os.path.dirname(__file__)
-res_path = os.path.join(mod_path, 'res')
+MOD_PATH = os.path.dirname(__file__)
+RES_PATH = os.path.join(MOD_PATH, 'resource')
