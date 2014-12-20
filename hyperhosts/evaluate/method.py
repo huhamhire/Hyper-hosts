@@ -9,10 +9,11 @@ import select
 import socket
 import ssl
 import struct
-import sys
 import time
 
 from abc import ABCMeta, abstractmethod
+
+import hyperhosts.utilities as utils
 
 from hyperhosts.constants import RES_PATH
 
@@ -21,13 +22,13 @@ class EvalMethodBase(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        if sys.platform == "win32":
+        if utils.is_sys_win():
             self.timer = time.clock
         else:
             self.timer = time.time
 
     @abstractmethod
-    def eval(self):
+    def evaluate(self):
         pass
 
 
@@ -50,7 +51,7 @@ class CertVerify(EvalMethodBase):
         )
         self._ctx = ctx
 
-    def eval(self):
+    def evaluate(self):
         """
 
         :return:
@@ -90,18 +91,17 @@ class ICMPEcho(EvalMethodBase):
         self._data = self._create_data()
 
     def _create_sock(self):
+        if not utils.is_user_admin():
+            # RAW socket need root privilege
+            raise OSError("Operation not permitted")
         if self._v6:
             proto = socket.getprotobyname("ipv6-icmp")
         else:
             proto = socket.getprotobyname("icmp")
-        try:
-            # Create RAW socket for ping test
-            sock = socket.socket(self._family, socket.SOCK_RAW, proto)
-            sock.settimeout(self._timeout)
-            return sock
-        except socket.error:
-            # RAW socket need root privilege
-            raise
+        # Create RAW socket for ping test
+        sock = socket.socket(self._family, socket.SOCK_RAW, proto)
+        sock.settimeout(self._timeout)
+        return sock
 
     def _create_pack(self):
         # Create a dummy header
@@ -131,9 +131,12 @@ class ICMPEcho(EvalMethodBase):
             data += [(i & 0xff)]
         return bytes(data)
 
-    def eval(self):
+    def evaluate(self):
         pack = self._create_pack()
-        sock = self._create_sock()
+        try:
+            sock = self._create_sock()
+        except OSError:
+            return -1
         # Send packet
         target = socket.getaddrinfo(
             self._ip, 0, self._family, 0, socket.SOL_IP)[0][4]
@@ -175,7 +178,7 @@ class HttpDelay(EvalMethodBase):
             self.url = 'http://' + hostname
             self.conn = http.client.HTTPConnection
 
-    def eval(self):
+    def evaluate(self):
         delay, start_time, stat = -1, self.timer(), None
         conn = self.conn(host=self._ip, port=self.port, timeout=self._timeout)
         try:
