@@ -9,6 +9,7 @@ import select
 import socket
 import ssl
 import struct
+import sys
 import time
 
 from abc import ABCMeta, abstractmethod
@@ -18,6 +19,12 @@ from hyperhosts.constants import RES_PATH
 
 class EvalMethodBase(object):
     __metaclass__ = ABCMeta
+
+    def __init__(self):
+        if sys.platform == "win32":
+            self.timer = time.clock
+        else:
+            self.timer = time.time
 
     @abstractmethod
     def eval(self):
@@ -68,14 +75,17 @@ class ICMPEcho(EvalMethodBase):
     PACKET_SIZE = 64
 
     def __init__(self, ip, pack_id=0, seq=0, is_ipv6=False, timeout=3):
+        super(ICMPEcho, self).__init__()
         self._ip = ip
         self._pack_id = pack_id
         self._seq = seq
         self._v6 = is_ipv6
         if self._v6:
             self._family = socket.AF_INET6
+            self._pack_type = 128
         else:
             self._family = socket.AF_INET
+            self._pack_type = 8
         self._timeout = timeout
         self._data = self._create_data()
 
@@ -95,27 +105,23 @@ class ICMPEcho(EvalMethodBase):
 
     def _create_pack(self):
         # Create a dummy header
-        if not self._v6:
-            header = struct.pack('bbHHh', 8, 0, 0, self._pack_id, 0)
-        else:
-            header = struct.pack('BbHHh', 128, 0, 0, self._pack_id, 0)
+        # The order of header data is: TYPE, CODE, CHECKSUM, ID, SEQ
+        checksum = 0
+        header = struct.pack(
+            'BbHHh', self._pack_type, 0, checksum, self._pack_id, self._seq)
         # Calculate the checksum
         pack = header + self._data
         if len(pack) & 1:
             pack += '\0'
         words = array.array('h', pack)
-        checksum = 0
         for word in words:
             checksum += (word & 0xffff)
         checksum = (checksum >> 16) + (checksum & 0xffff)
         checksum += (checksum >> 16)
         checksum = (~checksum) & 0xffff
         # Repack ICMP packet with checksum
-        # TYPE, CODE, CHECKSUM, ID, SEQ
-        if not self._v6:
-            header = struct.pack('bbHHh', 8, 0, checksum, self._pack_id, 0)
-        else:
-            header = struct.pack('BbHHh', 128, 0, checksum, self._pack_id, 0)
+        header = struct.pack(
+            'BbHHh', self._pack_type, 0, checksum, self._pack_id, self._seq)
         return header + self._data
 
     def _create_data(self):
@@ -131,7 +137,7 @@ class ICMPEcho(EvalMethodBase):
         # Send packet
         target = socket.getaddrinfo(
             self._ip, 0, self._family, 0, socket.SOL_IP)[0][4]
-        time_send = time.clock()
+        time_send = self.timer()
         sock.sendto(pack, target)
         # Receive packet
         while True:
@@ -139,21 +145,25 @@ class ICMPEcho(EvalMethodBase):
             ready = select.select([sock], [], [], timeout)
             if not ready[0]:
                 return -1
-            time_received = time.clock()
+            time_received = self.timer()
             rec_packet, address = sock.recvfrom(1024)
-            header = rec_packet[20:28]
-            rtype, code, checksum, rid, seq = struct.unpack('bbHHh', header)
+            if not self._v6:
+                header = rec_packet[20:28]
+            else:
+                header = rec_packet[0:8]
+            rtype, code, checksum, rid, seq = struct.unpack('BbHHh', header)
             echo = time_received - time_send
-            if rid == self._pack_id:
+            if address[0] == target[0] and rid == self._pack_id:
                 return echo
             if timeout - echo < 0:
                 return -1
 
 
 class HttpDelay(EvalMethodBase):
-    CONNECTION_RESET_STAT = 1000
+    CONNECTION_RESET_CODE = 1000
 
     def __init__(self, ip, hostname, port=None, timeout=10, https=False):
+        super(HttpDelay, self).__init__()
         self._ip = ip
         self._timeout = timeout
         if https:
@@ -166,20 +176,16 @@ class HttpDelay(EvalMethodBase):
             self.conn = http.client.HTTPConnection
 
     def eval(self):
-        delay, start_time, stat = -1, time.time(), None
+        delay, start_time, stat = -1, self.timer(), None
         conn = self.conn(host=self._ip, port=self.port, timeout=self._timeout)
         try:
             conn.request(method="GET", url=self.url)
             stat = conn.getresponse().status
-            delay = time.time() - start_time
+            delay = self.timer() - start_time
         except socket.timeout:
             stat = http.client.REQUEST_TIMEOUT
         except ConnectionResetError:
-            stat = self.CONNECTION_RESET_STAT
+            stat = self.CONNECTION_RESET_CODE
         finally:
             conn.close()
             return delay, stat
-
-if __name__ == "__main__":
-    test = ICMPEcho("10.0.5.1", 0, 0)
-    print(test.eval())
