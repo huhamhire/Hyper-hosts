@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyleft (C) 2015 - huhamhire <me@huhamhire.com>
@@ -18,10 +18,11 @@ import hyperhosts.utilities as utils
 from hyperhosts.constants import RES_PATH
 
 
-class EvalMethodBase(object):
+class EvalBase(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
+        super(EvalBase, self).__init__()
         if utils.is_sys_win():
             self.timer = time.clock
         else:
@@ -32,7 +33,7 @@ class EvalMethodBase(object):
         pass
 
 
-class CertVerify(EvalMethodBase):
+class CertVerify(EvalBase):
 
     def __init__(self, ip, hostname, port=443, timeout=10):
         super(CertVerify, self).__init__()
@@ -72,10 +73,10 @@ class CertVerify(EvalMethodBase):
             return result
 
 
-class ICMPEcho(EvalMethodBase):
+class ICMPEcho(EvalBase):
     PACKET_SIZE = 64
 
-    def __init__(self, ip, pack_id=0, seq=0, is_ipv6=False, timeout=3):
+    def __init__(self, ip, pack_id=0, seq=0, is_ipv6=False, timeout=5):
         super(ICMPEcho, self).__init__()
         self._ip = ip
         self._pack_id = pack_id
@@ -90,7 +91,7 @@ class ICMPEcho(EvalMethodBase):
         self._timeout = timeout
         self._data = self._create_data()
 
-    def _create_sock(self):
+    def _create_socket(self):
         if not utils.is_user_admin():
             # RAW socket need root privilege
             raise OSError("Operation not permitted")
@@ -103,7 +104,7 @@ class ICMPEcho(EvalMethodBase):
         sock.settimeout(self._timeout)
         return sock
 
-    def _create_pack(self):
+    def _create_packet(self):
         # Create a dummy header
         # The order of header data is: TYPE, CODE, CHECKSUM, ID, SEQ
         checksum = 0
@@ -132,9 +133,9 @@ class ICMPEcho(EvalMethodBase):
         return bytes(data)
 
     def evaluate(self):
-        pack = self._create_pack()
+        pack = self._create_packet()
         try:
-            sock = self._create_sock()
+            sock = self._create_socket()
         except OSError:
             return -1
         # Send packet
@@ -162,7 +163,7 @@ class ICMPEcho(EvalMethodBase):
                 return -1
 
 
-class HttpDelay(EvalMethodBase):
+class HttpDelay(EvalBase):
     CONNECTION_RESET_CODE = 1000
 
     def __init__(self, ip, hostname, port=None, timeout=10, https=False):

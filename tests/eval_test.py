@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyleft (C) 2015 - huhamhire <me@huhamhire.com>
@@ -6,8 +6,8 @@ import unittest
 
 import hyperhosts.utilities as utils
 
-from hyperhosts.evaluate import CertVerify, ICMPEcho, HttpDelay
-from test.constants import test_mark
+from hyperhosts.network import CertVerify, ICMPEcho, HttpDelay
+from tests.constants import TEST_MARK
 
 
 class EvalMethodTest(unittest.TestCase):
@@ -48,7 +48,7 @@ class EvalMethodTest(unittest.TestCase):
 
 
 def eval_test_suite():
-    eval_test = unittest.makeSuite(EvalMethodTest, test_mark)
+    eval_test = unittest.makeSuite(EvalMethodTest, TEST_MARK)
     return unittest.TestSuite(eval_test)
 
 if __name__ == "__main__":

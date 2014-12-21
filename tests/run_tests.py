@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyleft (C) 2015 - huhamhire <me@huhamhire.com>
@@ -15,7 +15,7 @@ import unittest
 
 
 def run_tests():
-    from test.eval_test import eval_test_suite
+    from tests.eval_test import eval_test_suite
     tests = unittest.TestSuite((eval_test_suite()))
     unittest.TextTestRunner(verbosity=1).run(tests)
 
