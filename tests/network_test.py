@@ -6,7 +6,7 @@ import unittest
 
 import hyperhosts.utilities as utils
 
-from hyperhosts.network import CertVerify, ICMPEcho, HttpDelay
+from hyperhosts.network import DNSQuery, CertVerify, ICMPEcho, HttpDelay
 from tests.constants import TEST_MARK
 
 
@@ -47,9 +47,20 @@ class EvalMethodTest(unittest.TestCase):
             self.assertEqual(echo, -1)
 
 
-def eval_test_suite():
+class CrawlMethodTest(unittest.TestCase):
+    def test_dns_query(self):
+        test = DNSQuery('www.alipay.com', '8.8.4.4')
+        ips = test.crawl()
+        self.assertIn("110.75.142.111", ips)
+        test = DNSQuery('huhamhire.com', '8.8.4.4', is_v6_record=True)
+        ips = test.crawl()
+        self.assertIn("2604:180:1::d54:39b9", ips)
+
+
+def network_test_suite():
     eval_test = unittest.makeSuite(EvalMethodTest, TEST_MARK)
-    return unittest.TestSuite(eval_test)
+    crawl_test = unittest.makeSuite(CrawlMethodTest, TEST_MARK)
+    return unittest.TestSuite((eval_test, crawl_test))
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=1).run(eval_test_suite())
+    unittest.TextTestRunner(verbosity=1).run(network_test_suite())

@@ -15,8 +15,8 @@ import unittest
 
 
 def run_tests():
-    from tests.eval_test import eval_test_suite
-    tests = unittest.TestSuite((eval_test_suite()))
+    from tests.network_test import network_test_suite
+    tests = unittest.TestSuite((network_test_suite()))
     unittest.TextTestRunner(verbosity=1).run(tests)
 
 if __name__ == "__main__":
