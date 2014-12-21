@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyleft (C) 2015 - huhamhire <me@huhamhire.com>
 
 import os
 
-mod_path = os.path.dirname(__file__)
-res_path = os.path.join(mod_path, 'res')
+MOD_PATH = os.path.dirname(__file__)
+RES_PATH = os.path.join(MOD_PATH, 'resource')
