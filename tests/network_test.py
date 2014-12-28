@@ -6,7 +6,8 @@ import unittest
 
 import hyperhosts.utilities as utils
 
-from hyperhosts.network import DNSQuery, CertVerify, ICMPEcho, HttpDelay
+from hyperhosts.network import (
+    DNSQuery, IPFilter, CertVerify, ICMPEcho, HttpDelay)
 from tests.constants import TEST_MARK
 
 
@@ -49,18 +50,26 @@ class EvalMethodTest(unittest.TestCase):
 
 class CrawlMethodTest(unittest.TestCase):
     def test_dns_query(self):
-        test = DNSQuery('www.alipay.com', '8.8.4.4')
+        test = DNSQuery('www.alipay.com', '223.5.5.5')
         ips = test.crawl()
         self.assertIn("110.75.142.111", ips)
-        test = DNSQuery('huhamhire.com', '8.8.4.4', is_v6_record=True)
+        test = DNSQuery('huhamhire.com', '223.5.5.5', is_v6_record=True)
         ips = test.crawl()
         self.assertIn("2604:180:1::d54:39b9", ips)
+
+
+class FilterMethodTest(unittest.TestCase):
+    def test_ip_filter(self):
+        test = IPFilter()
+        self.assertTrue(test.filter('1.1.1.1'))
+        self.assertFalse(test.filter('8.8.8.8'))
 
 
 def network_test_suite():
     eval_test = unittest.makeSuite(EvalMethodTest, TEST_MARK)
     crawl_test = unittest.makeSuite(CrawlMethodTest, TEST_MARK)
-    return unittest.TestSuite((eval_test, crawl_test))
+    filter_test = unittest.makeSuite(FilterMethodTest, TEST_MARK)
+    return unittest.TestSuite((eval_test, crawl_test, filter_test))
 
 if __name__ == "__main__":
     unittest.TextTestRunner(verbosity=1).run(network_test_suite())
